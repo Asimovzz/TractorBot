@@ -1,8 +1,5 @@
 import random
 
-'''
-该HeuBot用作本地训练
-'''
 class HeuBot:
     def __init__(self, level='2'):
         self.cardscale = ['A','2','3','4','5','6','7','8','9','0','J','Q','K']

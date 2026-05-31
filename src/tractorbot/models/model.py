@@ -41,11 +41,9 @@ class CNNModel(nn.Module):
                 nn.Flatten()
             )
         
-        # 解耦
         self.actor_encoder = make_encoder()
         self.critic_encoder = make_encoder()
         
-        # 全局特征处理
         self.global_fc = nn.Sequential(
             nn.Linear(6, 32),
             nn.ReLU(),
@@ -53,7 +51,6 @@ class CNNModel(nn.Module):
             nn.ReLU()
         )
         
-        # Action Encoder
         self.action_conv = nn.Sequential(
             nn.Conv2d(2, 16, kernel_size=3, padding=1),
             nn.BatchNorm2d(16),
@@ -64,10 +61,8 @@ class CNNModel(nn.Module):
             nn.Flatten()  # Output: [B*54, 64]
         )
         
-        # Actor Projection
         self.state_proj = nn.Linear(320, 64)
         
-        # Critic Head
         self.value_head = nn.Sequential(
             nn.Linear(320, 128),
             nn.ReLU(),
@@ -85,20 +80,16 @@ class CNNModel(nn.Module):
         obs = input_dict["observation"].float()
         global_input = input_dict["global_feature"].float()
         
-        # 拆分 State 和 Options
         global_state = obs[:, :20, :, :] 
         option_mat = obs[:, 20:, :, :] 
         
         batch_size = obs.shape[0]
         
-        # CNN 特征
         actor_cnn_feat = self.actor_encoder(global_state)
         critic_cnn_feat = self.critic_encoder(global_state)
         
-        # 全局特征
         global_emb = self.global_fc(global_input)
         
-        # 特征融合
         actor_fusion = torch.cat([actor_cnn_feat, global_emb], dim=1)
         critic_fusion = torch.cat([critic_cnn_feat, global_emb], dim=1)
         

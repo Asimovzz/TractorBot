@@ -35,7 +35,6 @@ class ModelPoolServer:
 class ModelPoolClient:
     
     def __init__(self, name):
-        # 增加超时机制，防止死循环
         start_time = time.time()
         while True:
             try:
@@ -43,7 +42,7 @@ class ModelPoolClient:
                 _ = self.shared_model_list[-1] 
                 break
             except (ValueError, FileNotFoundError, IndexError):
-                if time.time() - start_time > 60: # 超时报错
+                if time.time() - start_time > 60:
                     raise TimeoutError("Cannot connect to ModelPool Server")
                 time.sleep(0.1)
         
@@ -54,10 +53,9 @@ class ModelPoolClient:
     
     def _update_model_list(self):
         try:
-            # 加上 try-except 防止读取瞬间冲突
             n = self.shared_model_list[-1]
         except ValueError:
-            return # 如果读不到，这就当作没更新
+            return
         
         if n > self.n:
             # new models available, update local list
@@ -66,7 +64,7 @@ class ModelPoolClient:
                     data = self.shared_model_list[i % self.capacity]
                     self.model_list[i % self.capacity] = cPickle.loads(data)
                 except Exception:
-                    continue # 跳过坏数据
+                    continue
             self.n = n
     
     def get_model_list(self):

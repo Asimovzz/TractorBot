@@ -1,9 +1,6 @@
 import sys
 from collections import Counter
 
-'''
-该heu_bot用于提交botzone平台，调整了接口
-'''
 cardscale = ['A','2','3','4','5','6','7','8','9','0','J','Q','K']
 suitset = ['s','h','c','d']
 pointorder_tpl = ['2','3','4','5','6','7','8','9','0','J','Q','K','A']
@@ -38,13 +35,11 @@ class GameState:
         self.major_list = major_list
         self.unknown_cards = []
         
-        # 初始化未知牌库
         for d in range(2):
             for s in suitset:
                 for r in cardscale: self.unknown_cards.append(s+r)
             self.unknown_cards.append("jo"); self.unknown_cards.append("Jo")
         
-        # 移除自己手牌
         my_hand_names = [Num2Poker(x) for x in current_hold]
         for c in my_hand_names:
             if c in self.unknown_cards: self.unknown_cards.remove(c)
@@ -77,7 +72,6 @@ class GameState:
                 if prev_round:
                     self.analyze_round(prev_round, leader_id)
                 
-                # 移除当前轮已经打出的牌
                 curr_round = history[1]
                 if curr_round:
                     for move in curr_round:
@@ -96,11 +90,9 @@ class GameState:
             move_ids = round_cards[i]
             move_names = [Num2Poker(x) for x in move_ids]
             
-            # 从未知牌中移除
             for name in move_names:
                 if name in self.unknown_cards: self.unknown_cards.remove(name)
             
-            # 记录缺门
             if i > 0: 
                 actual_suit = self.get_suit(move_names[0])
                 if actual_suit != leader_suit:
@@ -110,13 +102,11 @@ class GameState:
         suit = self.get_suit(card_name)
         my_weight = self.get_rank_weight(card_name, global_level, global_major_suit, global_point_order)
         
-        # 检查是否还有更大的牌在外面
         for c in self.unknown_cards:
             if self.get_suit(c) == suit:
                 if self.get_rank_weight(c, global_level, global_major_suit, global_point_order) > my_weight: 
                     return False, "NotBiggest"
         
-        # 检查是否会被毙掉
         if suit != 'master':
             enemies = [(self.my_id + 1) % 4, (self.my_id + 3) % 4]
             for enemy in enemies:
@@ -176,7 +166,6 @@ class HeuBot:
                     else: 
                         if w > winning_weight: winning_weight = w
 
-        # 坐庄/首出
         if not history_curr:
             best_score = -99999
             best_idx = 0
@@ -212,7 +201,6 @@ class HeuBot:
                     best_idx = idx
             return best_idx
 
-        # 跟牌
         else:
             leader_id = (state.my_id - len(history_curr)) % 4
             winner_rel_idx = 0

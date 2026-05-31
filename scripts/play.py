@@ -5,12 +5,11 @@ import torch
 import numpy as np
 from collections import Counter
 
-from model import CNNModel
-from wrapper import cardWrapper
-from mvGen import move_generator
-from heu_bot import HeuBot
+from tractorbot.models.model import CNNModel
+from tractorbot.envs.wrapper import cardWrapper
+from tractorbot.envs.mvGen import move_generator
+from tractorbot.agents.heu_botzone_bot import HeuBot
 
-# 神经网络决策层
 class NeuralBrain:
     def __init__(self):
         self.wrapper = cardWrapper()

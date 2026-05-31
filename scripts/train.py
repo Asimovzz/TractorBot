@@ -1,8 +1,8 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-from replay_buffer import ReplayBuffer
-from actor import Actor
-from learner import Learner
+from tractorbot.rl.replay_buffer import ReplayBuffer
+from tractorbot.rl.actor import Actor
+from tractorbot.rl.learner import Learner
 import torch
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         'entropy_coeff': 0.04,   
         'device': 'cuda',
         'ckpt_save_interval': 500,
-        'ckpt_save_path': 'checkpoint_league_1/'
+        'ckpt_save_path': 'checkpoints/'
     }
     
     if not os.path.exists(config['ckpt_save_path']):

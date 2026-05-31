@@ -37,7 +37,6 @@ class BetterBot:
                     best_idx = i
             return best_idx
 
-        # 跟牌
         else:
             current_winner_idx = 0
             

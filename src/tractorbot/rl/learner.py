@@ -5,9 +5,9 @@ import torch
 from torch.nn import functional as F
 import os
 
-from replay_buffer import ReplayBuffer
-from model_pool import ModelPoolServer
-from model import CNNModel
+from tractorbot.rl.replay_buffer import ReplayBuffer
+from tractorbot.rl.model_pool import ModelPoolServer
+from tractorbot.models.model import CNNModel
 
 class Learner(Process):
     

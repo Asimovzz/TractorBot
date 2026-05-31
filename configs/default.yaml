@@ -1,0 +1,46 @@
+experiment:
+  name: "exp_1"
+  save_dir: "logs"
+  save_interval: 20
+  num_threads: 1
+
+env:
+  rules:
+    total_cards: 108
+    public_cards: 8
+    cards_per_player: 25
+    win_score: 80
+  
+  rewards:
+    scale_factor: 10.0
+    game_over_bonus: 10.0
+    score_margin_divisor: 40.0
+    aggression_threshold_1: 100
+    aggression_bonus_1: 3.0
+    aggression_threshold_2: 120
+    aggression_bonus_2: 6.0
+    win_trick: 0.5
+    kill: 0.5
+    throw_base: 0.5
+    throw_extra: 0.1
+    point_unit: 50.0
+    banker_punish_mult: 1.5
+
+rl:
+  gamma: 0.99
+  lambda: 0.95
+  model_pool_name: "tractor_pool"
+
+opponents:
+  heu_bot_prob: 0.05
+  neural_bot_prob: 0.60
+  better_bot_prob: 0.25
+  self_play_prob: 0.10
+  default_neural_name: "1935"
+  legend_models:
+    "1292": "pretrained_models/model_phase1.pt"
+    "1935": "pretrained_models/model_phase2.pt"
+
+model:
+  hidden_dim: 64
+  action_space: [54, 2, 4, 14]

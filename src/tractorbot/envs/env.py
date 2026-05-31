@@ -1,6 +1,6 @@
 import random
 from collections import Counter
-from mvGen import move_generator
+from tractorbot.envs.mvGen import move_generator
 
 class Error(Exception):
     def __init__(self, ErrorInfo):

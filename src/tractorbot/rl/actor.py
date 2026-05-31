@@ -6,23 +6,23 @@ import glob
 import random
 import time
 
-from replay_buffer import ReplayBuffer
-from model_pool import ModelPoolClient
-from env import TractorEnv
-from model import CNNModel
-from wrapper import cardWrapper
+from tractorbot.rl.replay_buffer import ReplayBuffer
+from tractorbot.rl.model_pool import ModelPoolClient
+from tractorbot.envs.env import TractorEnv
+from tractorbot.models.model import CNNModel
+from tractorbot.envs.wrapper import cardWrapper
 
 try:
-    from better_bot import BetterBot
+    from tractorbot.agents.better_bot import BetterBot
 except ImportError:
     BetterBot = None
-    print("Warning: better_bot.py not found.")
+    print("Warning: tractorbot.agents.better_bot not found.")
 
 try:
-    from heu_bot_train import HeuBot
+    from tractorbot.agents.heu_train_bot import HeuBot
 except ImportError:
     HeuBot = None
-    print("Warning: heu_bot.py not found.")
+    print("Warning: tractorbot.agents.heu_bot not found.")
 
 class Actor(Process):
     
@@ -47,8 +47,7 @@ class Actor(Process):
         bots_library = {}
         
         legend_paths = {
-            # '1292': 'history_model/model_1292_plus_global.pt',
-            # '1935': 'history_model/model_1935_plus_global.pt'
+            # 
         }
         
         for name, path in legend_paths.items():
@@ -70,8 +69,9 @@ class Actor(Process):
         self.wrapper = cardWrapper()
         
         reward_buffer = []
-        SAVE_INTERVAL = 20
-        save_dir = os.path.join('logs', 'exp_league_1')
+        exp_cfg = self.config.get('experiment', {})
+        SAVE_INTERVAL = exp_cfg.get('save_interval', 20)
+        save_dir = os.path.join(exp_cfg.get('save_dir', 'logs'), exp_cfg.get('name', 'default_exp'))
         os.makedirs(save_dir, exist_ok=True)
         full_save_path = os.path.join(save_dir, f"reward_{self.name}.txt")
 
@@ -90,17 +90,22 @@ class Actor(Process):
             current_bot = None
             use_neural_opponent = False
             
-            if rand_val < 0.05 and 'heu_bot' in bots_library:
+            opp_cfg = self.config.get('opponents', {})
+            prob_heu = opp_cfg.get('heu_bot_prob', 0.05)
+            prob_neural = opp_cfg.get('neural_bot_prob', 0.60) + prob_heu
+            prob_better = opp_cfg.get('better_bot_prob', 0.25) + prob_neural
+
+            if rand_val < prob_heu and 'heu_bot' in bots_library:
                 opponent_type = "heu_bot"
                 current_bot = bots_library['heu_bot']
                 
-            elif rand_val < 0.65 and len(opponent_library) > 0:
+            elif rand_val < prob_neural and len(opponent_library) > 0:
                 opp_name = '1935'
                 opponent_model.load_state_dict(opponent_library['1935'])
                 opponent_type = "model_1935"
                 use_neural_opponent = True
                 
-            elif rand_val < 0.9:
+            elif rand_val < prob_better:
                 opponent_type = "better_bot"
                 current_bot = bots_library['better_bot']
 
@@ -189,7 +194,8 @@ class Actor(Process):
                 global_np = np.stack(agent_data['state']['global_feature'][:min_len])
                 mask_np = np.stack(agent_data['state']['action_mask'][:min_len])
                 actions_np = np.array(agent_data['action'][:min_len], dtype=np.int64)
-                rewards_np = np.array(agent_data['reward'][:min_len], dtype=np.float32) / 10.0
+                reward_scale = self.config.get('env', {}).get('rewards', {}).get('scale_factor', 10.0)
+                rewards_np = np.array(agent_data['reward'][:min_len], dtype=np.float32) / reward_scale
                 values_np = np.array(agent_data['value'][:min_len], dtype=np.float32)
                 log_probs_np = np.array(agent_data['log_prob'][:min_len], dtype=np.float32)
                 
