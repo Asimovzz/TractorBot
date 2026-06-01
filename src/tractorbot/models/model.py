@@ -58,7 +58,7 @@ class CNNModel(nn.Module):
             ResBlock(16, 32),
             ResBlock(32, 64),
             nn.AdaptiveAvgPool2d(1),
-            nn.Flatten()  # Output: [B*54, 64]
+                nn.Flatten()
         )
         
         self.state_proj = nn.Linear(320, 64)
@@ -74,9 +74,6 @@ class CNNModel(nn.Module):
                 nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
 
     def forward(self, input_dict):
-        # input_dict["observation"] shape: [Batch, 128, 4, 14]
-        # input_dict["global_feature"] shape: [Batch, 6]
-        
         obs = input_dict["observation"].float()
         global_input = input_dict["global_feature"].float()
         

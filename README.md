@@ -1,77 +1,137 @@
 # TractorBot
 
-**TractorBot** is a Reinforcement Learning agent designed to play the popular Chinese trick-taking card game "Tractor".
+TractorBot is a PyTorch reinforcement-learning project for the Chinese
+trick-taking card game Tractor. It includes a playable game environment,
+heuristic baseline bots, neural-network models, distributed self-play training
+components, pretrained checkpoints, and an online-evaluation style play script.
 
-## ✨ Features
+## Current Status
 
-* **Custom Game Environment**: A fully implemented, lightweight environment for the Tractor card game (`tractorbot.envs`).
-* **Distributed RL Architecture**: Features an asynchronous Actor-Learner architecture for efficient training (`tractorbot.rl`).
-* **Diverse Baselines**: Includes heuristic-based bots (`heu_bot`) and rule-based bots (`better_bot`) for evaluation and baseline comparisons.
+This repository is research-oriented and currently marked as alpha. The core
+environment and training pipeline are available, but public APIs may still
+change as the project is cleaned up and tested more broadly.
 
-## 📂 Project Structure
+## Features
+
+- Tractor game environment with legal move generation, scoring, reward shaping,
+  and action validation.
+- Baseline agents, including rule-based and heuristic bots.
+- PyTorch CNN actor-critic model for action scoring and value estimation.
+- Actor-learner reinforcement-learning components with replay buffer and model
+  pool support.
+- Pretrained checkpoints in `pretrained_models/`.
+- Botzone-style `scripts/play.py` entry point that can fall back to heuristic
+  play when a neural checkpoint is unavailable.
+
+## Repository Layout
 
 ```text
-TractorBot/
-├── pretrained_models/          # Pretrained model checkpoints (e.g., model_phase1.pt)
-├── scripts/                    # Executable scripts for training and evaluation
-│   ├── train.py                # Main RL training script
-│   ├── heu_bot_train.py        # Heuristic bot training/evaluation
-│   └── play.py                 # Interactive testing / evaluation script
-├── src/
-│   └── tractorbot/             # Core Python package
-│       ├── envs/               # Game environment and state representations
-│       ├── agents/             # Bot implementations (heuristic, rule-based)
-│       ├── rl/                 # Reinforcement learning core (actor, learner, replay buffer)
-│       └── models/             # Neural network architectures
-├── pyproject.toml              # Project metadata and build configuration
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
-
+.
+|-- configs/                 # Experiment and environment configuration
+|   `-- default.yaml
+|-- pretrained_models/       # Published pretrained checkpoints
+|-- scripts/                 # Runnable training and play entry points
+|   |-- train.py
+|   `-- play.py
+|-- src/tractorbot/          # Python package
+|   |-- agents/              # Rule and heuristic bots
+|   |-- envs/                # Game environment, wrappers, move generation
+|   |-- models/              # Neural network architectures
+|   `-- rl/                  # Actor, learner, replay buffer, model pool
+|-- tests/                   # Minimal smoke tests
+|-- CHANGELOG.md
+|-- CONTRIBUTING.md
+|-- LICENSE
+|-- pyproject.toml
+|-- requirements.txt
+`-- SECURITY.md
 ```
 
 ## Installation
 
-**1. Clone the repository:**
+Create a virtual environment and install the project in editable mode:
 
 ```bash
-git clone https://github.com/yourusername/TractorBot.git
-cd TractorBot
-pip install -r requirements.txt
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
 
-**2. Install the project in editable mode:**
-This allows you to import `tractorbot` from anywhere in the project.
+On macOS or Linux, activate the environment with:
 
 ```bash
-pip install -e .
+source .venv/bin/activate
 ```
 
-## Training
+For development and tests:
 
-To start a new Reinforcement Learning training loop using the Actor-Learner framework:
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest
+```
+
+## Quick Start
+
+Create an environment and inspect the first observation:
+
+```python
+from tractorbot.envs.env import TractorEnv
+
+env = TractorEnv({"seed": 0})
+obs, actions = env.reset(level="2", banker_pos=0, major="s")
+
+print(obs["id"])
+print(obs["deck"][:5])
+print(actions[:3])
+```
+
+Run the training entry point:
 
 ```bash
 python scripts/train.py
 ```
 
+Training defaults are loaded from `configs/default.yaml`. To run with another
+configuration file:
+
+```bash
+python scripts/train.py --config path/to/config.yaml
+```
+
+Run the play script:
+
+```bash
+python scripts/play.py
+```
+
+When run locally, `scripts/play.py` reads `log_forAI.json` if present and prints
+a JSON response. In an online judge environment, it reads a single JSON request
+from standard input.
+
 ## Pretrained Models
 
-Pretrained weights are located in the `pretrained_models/` directory.
+The repository includes:
+
+- `pretrained_models/model_phase1.pt`
+- `pretrained_models/model_phase2.pt`
+
+These checkpoints are referenced from `configs/default.yaml`. The Botzone-style
+play script currently looks for `/data/model_plus_global.pt` in online mode and
+falls back to heuristic decisions if that file is unavailable.
+
+## Configuration
+
+`configs/default.yaml` documents environment rules, reward constants,
+reinforcement-learning settings, opponent sampling weights, and model settings.
+Both `scripts/train.py` and `scripts/play.py` accept `--config`. You can also set
+`TRACTORBOT_CONFIG` to point at a YAML file.
 
 ## Contributing
 
-Contributions are welcome! If you have ideas for improving the environment, adding new RL algorithms, or optimizing the neural network architecture, please feel free to:
+See `CONTRIBUTING.md` for setup and pull-request guidance. Bug reports that
+include a minimal game state or reproduction script are especially useful.
 
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## License
 
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## 🙏 Acknowledgments
-
-Developed as part of the PKU Reinforcement Learning Final Project.
+TractorBot is distributed under the MIT License. See `LICENSE` for details.

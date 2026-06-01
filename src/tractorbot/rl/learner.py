@@ -17,9 +17,7 @@ class Learner(Process):
         self.config = config
     
     def run(self):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        log_dir = os.path.join(base_dir, 'logs/exp_league_1')
+        log_dir = self.config.get('experiment', {}).get('loss_log_dir', 'logs/exp_league_1')
         if not os.path.exists(log_dir):
             try:
                 os.makedirs(log_dir)
@@ -41,8 +39,8 @@ class Learner(Process):
         device = torch.device(self.config['device'])
         model = CNNModel()
         
-        pretrained_path = os.path.join(base_dir, 'history_model', 'model_phase2.pt')
-        if os.path.exists(pretrained_path):
+        pretrained_path = self.config.get('pretrained_path')
+        if pretrained_path and os.path.exists(pretrained_path):
             print(f"Loading Model: {pretrained_path}")
             try:
                 state_dict = torch.load(pretrained_path, map_location='cpu', weights_only=True)
@@ -53,9 +51,18 @@ class Learner(Process):
         model_pool.push(model.state_dict()) 
         model = model.to(device)
         
-        optimizer = torch.optim.Adam(model.parameters(), lr = self.config['lr'], eps=1e-5)
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=self.config['lr'],
+            eps=self.config.get('optimizer_eps', 1e-5),
+        )
         
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=400, gamma=0.9)
+        scheduler_cfg = self.config.get('scheduler', {})
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=scheduler_cfg.get('step_size', 400),
+            gamma=scheduler_cfg.get('gamma', 0.9),
+        )
         
         print(f"Learner waiting for {self.config['min_sample']} samples...")
         while self.replay_buffer.size() < self.config['min_sample']:
@@ -87,7 +94,6 @@ class Learner(Process):
             
             old_log_probs_all = batch['log_prob'] 
             
-            # 优势归一化 
             advs_all = (advs_all - advs_all.mean()) / (advs_all.std() + 1e-8)
             
             print('Iteration %d, Buffer: %d' % (iterations, self.replay_buffer.stats['sample_in']))
@@ -131,15 +137,19 @@ class Learner(Process):
                     
                     value_loss = F.mse_loss(values.squeeze(-1), targets)
                     
-                    decay_rate = 0.9995
-                    current_entropy_coeff = max(0.001, initial_entropy_coeff * (decay_rate ** iterations))
+                    decay_rate = self.config.get('entropy_decay', 0.9995)
+                    entropy_min = self.config.get('entropy_min', 0.001)
+                    current_entropy_coeff = max(entropy_min, initial_entropy_coeff * (decay_rate ** iterations))
                     
                     loss = policy_loss + self.config['value_coeff'] * value_loss - current_entropy_coeff * entropy
                     
                     optimizer.zero_grad()
                     loss.backward()
                     
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+                    torch.nn.utils.clip_grad_norm_(
+                        model.parameters(),
+                        max_norm=self.config.get('grad_clip_norm', 0.5),
+                    )
                     
                     optimizer.step()
                     
@@ -170,7 +180,7 @@ class Learner(Process):
                 print(f"Current LR: {current_lr:.2e}")
             t = time.time()
             if t - cur_time > self.config['ckpt_save_interval']:
-                path = self.config['ckpt_save_path'] + 'model_%d.pt' % iterations
+                path = os.path.join(self.config['ckpt_save_path'], 'model_%d.pt' % iterations)
                 torch.save(model.state_dict(), path)
                 cur_time = t
             

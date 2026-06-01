@@ -1,23 +1,26 @@
 import json
 import os
 import sys
+import argparse
 import torch
 import numpy as np
 from collections import Counter
 
+from tractorbot.config import load_config
 from tractorbot.models.model import CNNModel
 from tractorbot.envs.wrapper import cardWrapper
 from tractorbot.envs.mvGen import move_generator
 from tractorbot.agents.heu_botzone_bot import HeuBot
 
 class NeuralBrain:
-    def __init__(self):
+    def __init__(self, config):
+        play_config = config.get("play", {})
         self.wrapper = cardWrapper()
         self.model = CNNModel()
-        self.device = "cpu"
+        self.device = play_config.get("device", "cpu")
         self.loaded = False
         
-        model_path = '/data/model_plus_global.pt'
+        model_path = play_config.get("model_path", "/data/model_plus_global.pt")
         
         if os.path.exists(model_path):
             try:
@@ -33,7 +36,7 @@ class NeuralBrain:
     def get_suggestion(self, requests, hold, self_id, banker_pos, level, major, action_options_names):
         if not self.loaded: return None
         try:
-            # 重建全局已出牌
+            # Rebuild the visible played-card history.
             all_played = []
             current_round_history = []
             for req in requests:
@@ -79,7 +82,14 @@ class NeuralBrain:
             sys.stderr.write(f"[NN Inference Error] {e}\n")
             return None
 
-brain = NeuralBrain()
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the TractorBot play entry point.")
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to a YAML config file. Defaults to configs/default.yaml or TRACTORBOT_CONFIG.",
+    )
+    return parser.parse_known_args()[0]
 
 cardscale = ['A','2','3','4','5','6','7','8','9','0','J','Q','K']
 suitset = ['s','h','c','d']
@@ -250,13 +260,17 @@ def cover_Pub(old_public, deck):
     return to_bury
 
 if __name__ == '__main__':
+    cfg = load_config(parse_args().config)
+    brain = NeuralBrain(cfg)
+    play_cfg = cfg.get("play", {})
     _online = os.environ.get("USER", "") == "root"
     if _online:
         try: full_input = json.loads(input())
         except: exit(0)
     else:
-        if os.path.exists("log_forAI.json"):
-            with open("log_forAI.json") as fo: full_input = json.load(fo)
+        local_input_path = play_cfg.get("local_input_path", "log_forAI.json")
+        if os.path.exists(local_input_path):
+            with open(local_input_path) as fo: full_input = json.load(fo)
         else:
              full_input = {"requests": [], "responses": []}
 
@@ -264,7 +278,7 @@ if __name__ == '__main__':
     requests = full_input["requests"]
     responses = full_input["responses"]
     
-    # 状态恢复
+    # Restore local hand state from previous requests and responses.
     for i in range(len(requests) - 1):
         req = requests[i]
         
@@ -312,7 +326,7 @@ if __name__ == '__main__':
         history_curr = history[1]
         selfid = (history[3] + len(history_curr)) % 4
         
-        # 确认手牌同步
+        # Synchronize hand state before selecting a play action.
         if len(history[0]) != 0:
             self_move = history[0][(selfid-history[2]) % 4]
             for id in self_move:

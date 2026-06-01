@@ -46,9 +46,8 @@ class Actor(Process):
         opponent_library = {} 
         bots_library = {}
         
-        legend_paths = {
-            # 
-        }
+        opp_cfg = self.config.get('opponents', {})
+        legend_paths = opp_cfg.get('legend_models', {})
         
         for name, path in legend_paths.items():
             if os.path.exists(path):
@@ -65,7 +64,7 @@ class Actor(Process):
             bots_library['heu_bot'] = HeuBot(level='2')
             print(f"[{self.name}] HeuBot (Expert) Ready.")
             
-        env = TractorEnv()
+        env = TractorEnv(self.config.get('env', {}))
         self.wrapper = cardWrapper()
         
         reward_buffer = []
@@ -90,7 +89,6 @@ class Actor(Process):
             current_bot = None
             use_neural_opponent = False
             
-            opp_cfg = self.config.get('opponents', {})
             prob_heu = opp_cfg.get('heu_bot_prob', 0.05)
             prob_neural = opp_cfg.get('neural_bot_prob', 0.60) + prob_heu
             prob_better = opp_cfg.get('better_bot_prob', 0.25) + prob_neural
@@ -100,9 +98,10 @@ class Actor(Process):
                 current_bot = bots_library['heu_bot']
                 
             elif rand_val < prob_neural and len(opponent_library) > 0:
-                opp_name = '1935'
-                opponent_model.load_state_dict(opponent_library['1935'])
-                opponent_type = "model_1935"
+                default_opp_name = opp_cfg.get('default_neural_name')
+                opp_name = default_opp_name if default_opp_name in opponent_library else next(iter(opponent_library))
+                opponent_model.load_state_dict(opponent_library[opp_name])
+                opponent_type = f"model_{opp_name}"
                 use_neural_opponent = True
                 
             elif rand_val < prob_better:
@@ -114,7 +113,8 @@ class Actor(Process):
                 opponent_model.load_state_dict(main_model.state_dict())
                 use_neural_opponent = True
 
-            obs, action_options = env.reset(major='r')
+            reset_cfg = self.config.get('env', {}).get('default_reset', {})
+            obs, action_options = env.reset(**reset_cfg)
             
             episode_data = {
                 'player_0': {'state': {'observation': [], 'global_feature': [], 'action_mask': []}, 'action': [], 'reward': [], 'value': [], 'log_prob': []},

@@ -1,37 +1,33 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+import argparse
+import time
+
+import torch
+
+from tractorbot.config import build_training_config, load_config
 from tractorbot.rl.replay_buffer import ReplayBuffer
 from tractorbot.rl.actor import Actor
 from tractorbot.rl.learner import Learner
-import torch
 
-if __name__ == '__main__':
-    
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train TractorBot with actor-learner self-play.")
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to a YAML config file. Defaults to configs/default.yaml or TRACTORBOT_CONFIG.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    config = build_training_config(load_config(args.config))
+
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    
-    config = {
-        'replay_buffer_size': 100000,
-        'replay_buffer_episode': 2000,
-        'model_pool_size': 5,
-        'model_pool_name': 'model-pool',
-        'num_actors': 275,
-        'episodes_per_actor': 1000,
-        'gamma': 0.99,  
-        'lambda': 0.95,
-        'min_sample': 4096,
-        'batch_size': 4096,  
-        'mini_batch_size': 1024,
-        'epochs': 10,
-        'clip': 0.2, 
-        'lr': 3e-4,  
-        'value_coeff': 0.5,    
-        'entropy_coeff': 0.04,   
-        'device': 'cuda',
-        'ckpt_save_interval': 500,
-        'ckpt_save_path': 'checkpoints/'
-    }
-    
+
     if not os.path.exists(config['ckpt_save_path']):
         os.makedirs(config['ckpt_save_path'])
         print(f"Created directory: {config['ckpt_save_path']}")
@@ -48,14 +44,17 @@ if __name__ == '__main__':
     
     print("Starting Learner...")
     learner.start()
-    
-    import time
-    time.sleep(3)
+
+    time.sleep(config.get('actor_start_delay_seconds', 3.0))
     
     print(f"Starting {config['num_actors']} Actors...")
     for actor in actors: 
         actor.start()
-        time.sleep(0.1)
+        time.sleep(config.get('actor_start_interval_seconds', 0.1))
     
     for actor in actors: actor.join()
     learner.terminate()
+
+
+if __name__ == '__main__':
+    main()

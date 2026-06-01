@@ -10,22 +10,21 @@ class ReplayBuffer:
         self.capacity = capacity
         self.buffer = None
     
-    def push(self, samples): # only called by actors
+    def push(self, samples):
         self.queue.put(samples)
     
     def _flush(self):
-        if self.buffer is None: # called first time by learner
+        if self.buffer is None:
             self.buffer = deque(maxlen = self.capacity)
             self.stats = {'sample_in': 0, 'sample_out': 0, 'episode_in': 0}
         while not self.queue.empty():
-            # data flushed from queue to buffer
             episode_data = self.queue.get()
             unpacked_data = self._unpack(episode_data)
             self.buffer.extend(unpacked_data)
             self.stats['sample_in'] += len(unpacked_data)
             self.stats['episode_in'] += 1
     
-    def sample(self, batch_size): # only called by learner
+    def sample(self, batch_size):
         self._flush()
         assert len(self.buffer) > 0, "Empty buffer!"
         self.stats['sample_out'] += batch_size
@@ -36,16 +35,16 @@ class ReplayBuffer:
         batch = self._pack(samples)
         return batch
     
-    def size(self): # only called by learner
+    def size(self):
         self._flush()
         return len(self.buffer)
     
-    def clear(self): # only called by learner
+    def clear(self):
         self._flush()
         self.buffer.clear()
     
     def _unpack(self, data):
-        # convert dict (of dict...) of list of (num/ndarray/list) to list of dict (of dict...)
+        # Convert nested episode arrays into per-step samples.
         if type(data) == dict:
             res = []
             for key, value in data.items():
@@ -58,7 +57,7 @@ class ReplayBuffer:
             return list(data)
             
     def _pack(self, data):
-        # convert list of dict (of dict...) to dict (of dict...) of numpy array
+        # Rebuild a nested batch dictionary from sampled steps.
         if type(data[0]) == dict:
             keys = data[0].keys()
             res = {}

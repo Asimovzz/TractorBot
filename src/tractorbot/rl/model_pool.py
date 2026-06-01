@@ -8,20 +8,18 @@ class ModelPoolServer:
         self.capacity = capacity
         self.n = 0
         self.model_list = [None] * capacity
-        # shared_model_list: N metadata {id, _addr} + n
+        # Fixed-width metadata slots plus the latest model counter.
         metadata_size = 1024
         self.shared_model_list = ShareableList([' ' * metadata_size] * capacity + [self.n], name = name)
         
     def push(self, state_dict, metadata = {}):
         n = self.n % self.capacity
         if self.model_list[n]:
-            # FIFO: release shared memory of older model
             self.model_list[n]['memory'].unlink()
         
-        data = cPickle.dumps(state_dict) # model parameters serialized to bytes
+        data = cPickle.dumps(state_dict)
         memory = SharedMemory(create = True, size = len(data))
         memory.buf[:] = data[:]
-        # print('Created model', self.n, 'in shared memory', memory.name)
         
         metadata = metadata.copy()
         metadata['_addr'] = memory.name
@@ -58,7 +56,6 @@ class ModelPoolClient:
             return
         
         if n > self.n:
-            # new models available, update local list
             for i in range(max(self.n, n - 20), n):
                 try:
                     data = self.shared_model_list[i % self.capacity]

@@ -26,7 +26,7 @@ class move_generator():
         moves = []
         if tgt[0] in self.Major:
             moves = [[p] for p in deck if p in self.Major]
-            if len(moves) == 0: # No Major in deck
+            if len(moves) == 0:
                 moves = [[p] for p in deck]
         else:
             moves = [[p] for p in deck if p[0] == tgt[0][0] and p not in self.Major]
@@ -51,7 +51,7 @@ class move_generator():
             if v == 2:
                 moves.append([k, k])
         if len(moves) == 0:
-            if len(sel_deck) >= 2: # Generating cardset with same suit
+            if len(sel_deck) >= 2:
                 for i in range(len(sel_deck)-1):
                     for j in range(len(sel_deck)-i-1):
                         moves.append([sel_deck[i], sel_deck[i+j+1]])
@@ -81,7 +81,7 @@ class move_generator():
             sel_deck = [p for p in deck if p[0] == tgt[0][0] and p not in self.Major]
         
         sel_count = Counter(sel_deck)
-        sel_pairs = [k for k, v in sel_count.items() if v == 2] # Is actually list of cardname
+        sel_pairs = [k for k, v in sel_count.items() if v == 2]
         if "jo" in sel_pairs and "Jo" in sel_pairs and tractor_len == 4:
             moves.append(["jo", "jo", "Jo", "Jo"])
         if tgt[0] in self.Major:
@@ -94,26 +94,26 @@ class move_generator():
             trac_pairs = sel_pairs + []
             trac_pairs.sort(key=lambda x: self.point_order.index(x[1]))
             
-        if len(sel_deck) < len(tgt): # attaching cards with other suits
+        if len(sel_deck) < len(tgt):
             other_deck = [p for p in deck if p not in sel_deck]
             move_uni = sel_deck
             sup_sets = list(combinations(other_deck, len(tgt)-len(sel_deck)))
             for cardset in sup_sets:
                 moves.append(move_uni+list(cardset))
         
-        else:  # attaching cards with same suits
+        else:
             if len(sel_pairs) < pair_cnt:
                 move_uni = [p for k in sel_pairs for p in [k, k]]
-                sup_singles = [p for p in sel_deck if p not in sel_pairs] # enough to make a cardset
+                sup_singles = [p for p in sel_deck if p not in sel_pairs]
                 sup_sets = list(combinations(sup_singles, tractor_len - len(sel_pairs)*2))
                 for cardset in sup_sets:
                     moves.append(move_uni + list(cardset))
-            elif len(trac_pairs) < pair_cnt: # can be compensated with sel_pairs
+            elif len(trac_pairs) < pair_cnt:
                 pair_sets = list(combinations(sel_pairs, tractor_len//2))
                 for pairset in pair_sets:
                     moves.append([p for k in pairset for p in [k, k]])
             else:
-                for i in range(len(trac_pairs)-pair_cnt+1): # Try to retrieve a tractor
+                for i in range(len(trac_pairs)-pair_cnt+1):
                     if trac_pairs[i+pair_cnt-1][1] == self.point_order[self.point_order.index(trac_pairs[i][1])+pair_cnt-1]:
                         pair_set = [[trac_pairs[k], trac_pairs[k]] for k in range(i, i+pair_cnt)]
                         moves.append([p for pair in pair_set for p in pair])
@@ -133,7 +133,7 @@ class move_generator():
         suit = ''
         for k, v in tgt_count.items():
             if v == 2:
-                if k != 'jo' and k != 'Jo' and k[1] != level: # 大小王和级牌当然不会参与拖拉机
+                if k != 'jo' and k != 'Jo' and k[1] != level:
                     pos.append(self.point_order.index(k[1]))
                     suit = k[0]
         if len(pos) >= 2:
@@ -145,7 +145,7 @@ class move_generator():
                     if not suc_flag:
                         tmp = [suit + self.point_order[pos[i]], suit + self.point_order[pos[i]], suit + self.point_order[pos[i+1]], suit + self.point_order[pos[i+1]]]
                         del tgt_count[suit + self.point_order[pos[i]]]
-                        del tgt_count[suit + self.point_order[pos[i+1]]] # 已计入拖拉机的，从牌组中删去
+                        del tgt_count[suit + self.point_order[pos[i+1]]]
                         suc_flag = True
                     else:
                         tmp.extend([suit + self.point_order[pos[i+1]], suit + self.point_order[pos[i+1]]])
@@ -155,7 +155,6 @@ class move_generator():
                     suc_flag = False
             if suc_flag:
                 tractor.append(tmp)
-        # 对牌型作基础的拆分 
         for k,v in tgt_count.items(): 
             outpok.append([k for i in range(v)])
         outpok.extend(tractor)
@@ -189,28 +188,25 @@ class move_generator():
             
         return
             
-    def gen_all(self, deck): # Generating all cardset options
+    def gen_all(self, deck):
         moves = []
         suit_decks = []
         major_deck = [p for p in deck if p in self.Major]
         for i in range(4):
             suit_decks.append([p for p in deck if p[0] == self.suit_set[i] and p not in self.Major])
-        # Do the major first
         major_count = Counter(major_deck)
-        # Adding in all pairs and singles
         for k, v in major_count.items():
             if v == 1:
                 moves.append([k])
             if v == 2:
                 moves.append([k, k])
-        # Adding in tractors
         if "jo" in major_count and major_count["jo"] == 2 and "Jo" in major_count and major_count["Jo"] == 2:
             moves.append(["jo", "jo", "Jo", "Jo"])
         trac_major = [k for k,v in major_count.items() if v == 2 and k[1] != self.level and k[1] != 'o']
         trac_major.sort(key=lambda x: self.point_order.index(x[1]))
         tracstreak = []
         for i in range(len(trac_major)):
-            if len(tracstreak) == 0 or self.point_order.index(trac_major[i][1]) - self.point_order.index(tracstreak[-1][1]) > 1: # begin a new tracstreak
+            if len(tracstreak) == 0 or self.point_order.index(trac_major[i][1]) - self.point_order.index(tracstreak[-1][1]) > 1:
                 tracstreak = [trac_major[i], trac_major[i]]
             else:
                 tracstreak.extend([trac_major[i], trac_major[i]])
@@ -218,18 +214,16 @@ class move_generator():
                 
         for suit_deck in suit_decks:
             suit_count = Counter(suit_deck)
-            # Adding in all pairs and singles
             for k, v in suit_count.items():
                 if v == 1:
                     moves.append([k])
                 if v == 2:
                     moves.append([k, k])
-            # Adding in tractors
             tracstreak = []
             trac_suit = [k for k,v in suit_count.items() if v==2]
             trac_suit.sort(key=lambda x: self.point_order.index(x[1]))
             for i in range(len(trac_suit)):
-                if len(tracstreak) == 0 or self.point_order.index(trac_suit[i][1]) - self.point_order.index(tracstreak[-1][1]) > 1: # begin a new tracstreak
+                if len(tracstreak) == 0 or self.point_order.index(trac_suit[i][1]) - self.point_order.index(tracstreak[-1][1]) > 1:
                     tracstreak = [trac_suit[i], trac_suit[i]]
                 else:
                     tracstreak.extend([trac_suit[i], trac_suit[i]])

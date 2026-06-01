@@ -28,7 +28,6 @@ class cardWrapper:
         
         return self.suit_sequence[cardpos[0]] + self.point_sequence[cardpos[1]]
     
-    # adding cards to a cardset 
     def add_card(self, cardset: np.array, cards): 
         for card in cards:
             card_pos = self.name2pos(card)
@@ -40,7 +39,6 @@ class cardWrapper:
                 pass
         return cardset
     
-    # removing cards from cardset
     def remove_card(self, cardset: np.array, cards):
         for card in cards:
             card_pos = self.name2pos(card)
@@ -52,7 +50,6 @@ class cardWrapper:
                 raise Exception("Card not in cardset! Please recheck.")
         return cardset
     
-    # From cardset to cardnames
     def Unwrap(self, cardset): 
         cards = []
         card_poses = np.nonzero(cardset)
@@ -63,19 +60,13 @@ class cardWrapper:
 
     def get_global_features(self, played_mat, obs):
         """
-        提取 6 维全局特征向量
-        游戏进度 (0-1)
-        当前已出分值
-        庄家身份 (0/1)
-        关键牌消耗率: A (0-1)
-        关键牌消耗率: K (0-1)
-        关键牌消耗率: 分牌 (0-1)
+        Build compact global features for score, role, and key-card depletion.
         """
         
         played_count = np.sum(played_mat)
         progress = played_count / 100.0
         
-        rank_counts = np.sum(played_mat, axis=(0, 1)) # shape [14]
+        rank_counts = np.sum(played_mat, axis=(0, 1))
         
         
         count_A = rank_counts[12]
